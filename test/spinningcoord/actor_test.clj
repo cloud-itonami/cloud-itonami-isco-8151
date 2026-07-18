@@ -1,0 +1,74 @@
+(ns spinningcoord.actor-test
+  (:require [clojure.test :refer [deftest is testing]]
+            [spinningcoord.actor :as actor]
+            [spinningcoord.store :as store]))
+
+(defn- fresh-store []
+  (let [st (store/mem-store)]
+    (store/register-spinner! st {:spinner-id "spinner-1" :name "Aki Sato"})
+    (store/register-mill! st {:mill-id "M-1" :name "Kobo Spinning Mill" :max-supply-cost 2000})
+    st))
+
+(deftest commits-a-registered-work-log
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:spinner-id "spinner-1" :op :log-work-record :stake :low
+                  :mill-id "M-1" :task "production run progress log"}
+        result (actor/run-request! graph request {} "thread-1")]
+    (is (= :done (:status result)))
+    (is (some? (get-in result [:state :record])))
+    (is (= 1 (count (store/records-of st "spinner-1"))))))
+
+(deftest holds-an-unregistered-mill-proposal
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:spinner-id "spinner-1" :op :log-work-record :stake :low
+                  :mill-id "M-ghost" :task "production run progress log"}
+        result (actor/run-request! graph request {} "thread-2")]
+    (is (= :hold (:disposition (:state result))))
+    (is (empty? (store/records-of st "spinner-1")))))
+
+(deftest interrupts-then-approves-safety-concern-on-human-approval
+  (let [st (fresh-store)
+        graph (actor/build-graph {:store st})
+        request {:spinner-id "spinner-1" :op :flag-safety-concern :stake :low
+                  :mill-id "M-1" :hazard-type :entanglement-hazard}
+        interrupted (actor/run-request! graph request {} "thread-3")]
+    (is (= :interrupted (:status interrupted)))
+    (is (empty? (store/records-of st "spinner-1")))
+    (let [resumed (actor/approve! graph "thread-3")]
+      (is (= :done (:status resumed)))
+      (is (= 1 (count (store/records-of st "spinner-1")))))))
+
+(deftest holds-a-scope-excluded-op-even-at-high-confidence
+  (testing "an actor run can never commit a proposal that would finalize a machine-operation-execution decision, regardless of disposition path"
+    (let [st (fresh-store)
+          graph (actor/build-graph {:store st})
+          request {:spinner-id "spinner-1" :op :finalize-spinning-decision :stake :low
+                    :mill-id "M-1" :task "spinning decision"}
+          result (actor/run-request! graph request {} "thread-4")]
+      (is (= :done (:status result)))
+      (is (= :hold (:disposition (:state result))))
+      (is (empty? (store/records-of st "spinner-1"))))))
+
+(deftest holds-a-mill-safety-clearance-op-even-at-high-confidence
+  (testing "an actor run can never commit a proposal that would finalize a mill-safety-clearance decision, regardless of disposition path"
+    (let [st (fresh-store)
+          graph (actor/build-graph {:store st})
+          request {:spinner-id "spinner-1" :op :declare-mill-safety-cleared :stake :low
+                    :mill-id "M-1" :task "mill safety clearance"}
+          result (actor/run-request! graph request {} "thread-5")]
+      (is (= :done (:status result)))
+      (is (= :hold (:disposition (:state result))))
+      (is (empty? (store/records-of st "spinner-1"))))))
+
+(deftest holds-an-override-mill-safety-officer-op-even-at-high-confidence
+  (testing "an actor run can never commit a proposal that would override a mill safety officer's judgment, regardless of disposition path"
+    (let [st (fresh-store)
+          graph (actor/build-graph {:store st})
+          request {:spinner-id "spinner-1" :op :override-mill-safety-officer-judgment :stake :low
+                    :mill-id "M-1" :task "safety officer override"}
+          result (actor/run-request! graph request {} "thread-6")]
+      (is (= :done (:status result)))
+      (is (= :hold (:disposition (:state result))))
+      (is (empty? (store/records-of st "spinner-1"))))))
