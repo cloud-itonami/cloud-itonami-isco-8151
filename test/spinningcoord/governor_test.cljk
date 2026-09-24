@@ -1,5 +1,5 @@
 (ns spinningcoord.governor-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [spinningcoord.store :as store]
             [spinningcoord.advisor :as advisor]
             [spinningcoord.governor :as governor]))

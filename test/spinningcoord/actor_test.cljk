@@ -1,5 +1,5 @@
 (ns spinningcoord.actor-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [spinningcoord.actor :as actor]
             [spinningcoord.store :as store]))
 
