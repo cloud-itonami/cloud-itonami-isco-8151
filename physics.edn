@@ -1,0 +1,35 @@
+;; What this vertical's robot physically does, declared for
+;; kotoba.robotics.process (kotoba-lang/robotics). `kbb -M:physics` runs it.
+;;
+;; README "Robotics premise": a mill scheduling/logistics coordination robot
+;; schedules a fibre preparing/spinning/winding crew, logs runs/inventory and
+;; coordinates raw-fibre/yarn-stock supply; it never operates spinning or
+;; winding equipment. Its physical work is mill logistics: bringing fibre
+;; bales to the bale opener, and taking full packages off the winder into the
+;; package trolley.
+;;
+;; Every number without a cited source is marked `estimate` in its :basis.
+;; Replacing an estimate with a sourced value is this bot's growth work.
+{:physics/schema "itonami.physical-ai.spec.v1"
+ :repo "cloud-itonami/cloud-itonami-isco-8151"
+ :cases
+ [{:id :bale-to-opener
+   :kind :transport
+   :procedure "bale AMR carries fibre bales from the bale store to the bale-opener lay-down"
+   :params {:mass-kg 150.0 :distance-m 60.0 :v-max-mps 1.0 :a-max-mps2 0.3
+            :brake-decel-mps2 1.0 :drive-force-n 350.0 :crr 0.02
+            :cog-height-m 0.30 :payload-cog-height-m 0.75 :support-half-length-m 0.45
+            :max-time-s 1200.0}
+   :sweep {:param :payload-kg :values [220.0 440.0 660.0 880.0 1100.0]}
+   :quantity :cycle-time-s
+   :limit {:max 90.0 :basis "estimate: one bale delivery within the opener's lay-down replenishment interval"}
+   :boundary {:lo 50.0 :hi 2500.0}}
+  {:id :package-off-winder
+   :kind :manipulator
+   :procedure "arm lifts a full yarn package off the winding head into the package trolley"
+   :params {:l1-m 0.45 :l2-m 0.40 :m1-kg 3.5 :m2-kg 2.5 :payload-kg 2.0
+            :from [0.30 0.60] :to [0.55 0.05] :steps 400}
+   :sweep {:param :duration-s :values [0.5 0.7 1.0 1.5 2.0]}
+   :quantity :peak-tau1-nm
+   :limit {:max 45.0 :basis "estimate: continuous shoulder torque of a ~5 kg-class collaborative arm"}
+   :boundary {:lo 0.2 :hi 3.0}}]}
