@@ -1,7 +1,7 @@
 (ns spinningcoord.store
   "SSoT for the ISCO-08 8151 fibre preparing, spinning and winding
   machine operators mill scheduling/logistics coordination actor
-  (itonami actor pattern, ADR-2607121000 / CLAUDE.md Actors section;
+  (itonami actor pattern, ADR-2607121000 / AGENTS.md Actors section;
   README's 'Robotics premise' — a mill scheduling/logistics
   coordination robot performs crew scheduling, production-run/
   inventory/progress-record logging and raw-fibre/yarn-stock
